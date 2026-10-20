@@ -1,6 +1,10 @@
 MIT License
 
-Copyright (c) 2026 Ludok
+Copyright (c) 2026 BookForge Web
+
+Questo programma è una riscrittura per il browser, ispirata a BookForge di ChunksBabyRuth
+(https://github.com/chunksbabyruth/BookForge, licenza MIT: vedi LICENSE-originale-BookForge.txt).
+Il codice contenuto qui è stato riscritto da zero in HTML/CSS/JavaScript.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -19,3 +23,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+I font nella cartella fonts/ sono distribuiti con la SIL Open Font License 1.1:
+ogni famiglia ha il proprio file OFL.txt con il testo e il copyright degli autori.

@@ -1,0 +1,162 @@
+/* BookForge Web — aspetto del libro (usato identico da anteprima e stampa).
+   Le variabili --bk-* sono impostate da js/settings.js (BF.applyVars). */
+
+.bk-scope { font-family: var(--bk-font); }
+
+.bk-page {
+  position: relative;
+  width: var(--bk-pw);
+  height: var(--bk-ph);
+  background: #fff;
+  color: #111;
+  overflow: hidden;
+  flex: none;
+  font-family: var(--bk-font);
+  font-size: var(--bk-fs);
+  box-sizing: border-box;
+}
+
+/* area di testo ritagliata: il flusso a colonne scorre di una colonna per pagina */
+.bk-text { position: absolute; overflow: hidden; }
+
+/* contenitore a colonne: una colonna = una pagina */
+.bk-flow {
+  width: var(--bk-tw);
+  height: var(--bk-th);
+  column-width: var(--bk-tw);
+  column-gap: 0;
+  column-fill: auto;
+  font-family: var(--bk-font);
+  font-size: var(--bk-fs);
+  line-height: var(--bk-lh);
+  text-align: var(--bk-align);
+  hyphens: var(--bk-hyph);
+  -webkit-hyphens: var(--bk-hyph);
+  hyphenate-limit-chars: 6 3 3;
+  overflow-wrap: break-word;
+  font-kerning: normal;
+  font-variant-ligatures: common-ligatures;
+  orphans: 2;
+  widows: 2;
+  color: #111;
+}
+.bk-flow * { box-sizing: border-box; }
+.bk-flow p { margin: 0 0 var(--bk-par-gap); text-indent: var(--bk-indent); orphans: 2; widows: 2; }
+.bk-flow p.c { text-align: center; text-indent: 0; }
+.bk-flow p.r { text-align: right; text-indent: 0; }
+.bk-flow p.sc, .bk-flow .sc { font-variant: small-caps; letter-spacing: 0.04em; }
+.bk-flow p.noind, .bk-flow hr + p, .bk-flow h2 + p, .bk-flow h3 + p, .bk-flow h4 + p, .bk-flow .ch-head + p, .bk-flow blockquote + p.after { text-indent: 0; }
+.bk-flow em { font-style: italic; }
+.bk-flow strong { font-weight: 700; }
+.bk-flow u { text-decoration: underline; text-underline-offset: 0.12em; }
+.bk-flow s { text-decoration: line-through; }
+.bk-flow sup, .bk-flow sub { font-size: 0.7em; line-height: 0; }
+.bk-flow small { font-size: 0.85em; }
+.bk-flow code, .bk-flow pre { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.85em; }
+.bk-flow pre { white-space: pre-wrap; margin: 0.6em 0; text-align: left; }
+.bk-flow blockquote { margin: 0.6em 1.6em; font-size: 0.95em; break-inside: avoid-column; break-inside: avoid; }
+.bk-flow blockquote p { text-indent: 0; margin-bottom: 0.3em; }
+.bk-flow ul, .bk-flow ol { margin: 0.5em 0; padding-left: 1.6em; }
+.bk-flow li { text-indent: 0; }
+.bk-flow p.img { text-indent: 0; text-align: center; margin: 0.7em 0; break-inside: avoid-column; break-inside: avoid; }
+.bk-flow img { max-width: 100%; max-height: calc(var(--bk-th) * 0.86); object-fit: contain; }
+.bk-flow table { width: 100%; border-collapse: collapse; margin: 0.6em 0; font-size: 0.92em; table-layout: fixed; }
+.bk-flow td, .bk-flow th { border-bottom: 0.4pt solid #888; padding: 0.15em 0.4em; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+
+/* titoli interni al capitolo */
+.bk-flow h2, .bk-flow h3, .bk-flow h4, .bk-flow h5, .bk-flow h6 {
+  font-family: var(--bk-head-font);
+  text-align: center;
+  font-weight: 600;
+  margin: 1.4em 0 0.7em;
+  line-height: 1.2;
+  text-indent: 0;
+  hyphens: manual;
+  break-after: avoid; break-after: avoid-column;
+  break-inside: avoid;
+}
+.bk-flow h2 { font-size: 1.25em; }
+.bk-flow h3 { font-size: 1.1em; font-style: italic; }
+.bk-flow h4, .bk-flow h5, .bk-flow h6 { font-size: 1em; font-variant: small-caps; }
+
+/* separatore di scena */
+.bk-flow hr { border: 0; height: 0; margin: 0.9em 0; text-align: center; break-inside: avoid; }
+.bk-flow hr::before { content: var(--bk-scene); display: block; text-align: center; letter-spacing: 0.25em; line-height: 1; }
+.bk-scene-line .bk-flow hr { border-top: 0.4pt solid #555; width: 24%; margin: 1.1em auto; }
+.bk-scene-line .bk-flow hr::before { content: none; }
+
+/* testata del capitolo */
+.ch-head { text-align: center; padding-top: var(--bk-ch-sink); margin-bottom: var(--bk-ch-after); break-after: avoid; break-after: avoid-column; }
+.ch-title {
+  font-family: var(--bk-head-font);
+  font-size: var(--bk-ch-size);
+  font-weight: 600;
+  line-height: 1.15;
+  margin: 0;
+  text-transform: var(--bk-ch-case);
+  font-variant: var(--bk-ch-variant);
+  letter-spacing: var(--bk-ch-spacing);
+  text-indent: 0;
+  hyphens: manual;
+}
+.ch-orn { margin-top: 0.7em; font-size: 1.5em; line-height: 1; color: #333; }
+
+/* capolettera */
+.bk-dropcap .ch-head + p::first-letter {
+  float: left;
+  font-family: var(--bk-head-font);
+  font-size: var(--bk-dc-size);
+  line-height: 0.74;
+  padding: 0.04em 0.07em 0 0;
+  margin-top: 0.03em;
+  font-weight: 500;
+}
+
+/* indice */
+.toc-head { text-align: center; padding-top: var(--bk-ch-sink); margin-bottom: var(--bk-ch-after); }
+.toc-head h1 { font-family: var(--bk-head-font); font-size: var(--bk-ch-size); font-weight: 600; margin: 0; text-transform: var(--bk-ch-case); font-variant: var(--bk-ch-variant); letter-spacing: var(--bk-ch-spacing); }
+.toc { list-style: none; margin: 0; padding: 0; }
+.toc li { display: flex; align-items: baseline; gap: 0.4em; margin: 0.35em 0; text-indent: 0; }
+.toc .t { min-width: 0; }
+.toc .d { flex: 1; border-bottom: 0.6pt dotted #666; transform: translateY(-0.25em); min-width: 1em; }
+.toc .n { font-variant-numeric: tabular-nums; }
+
+/* elementi esterni al flusso */
+.bk-head, .bk-foot { position: absolute; display: flex; align-items: baseline; font-size: 0.78em; color: #333; line-height: 1; }
+.bk-head { align-items: flex-end; }
+.bk-head .mid { flex: 1; text-align: center; font-variant: small-caps; letter-spacing: 0.08em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bk-head .side, .bk-foot .side { min-width: 2.5em; font-variant-numeric: lining-nums tabular-nums; }
+.bk-foot .mid { flex: 1; text-align: center; font-variant-numeric: lining-nums tabular-nums; }
+.bk-foot .side.r, .bk-head .side.r { text-align: right; }
+
+/* frontespizio e copyright */
+.bk-title-page { position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-family: var(--bk-head-font); }
+.bk-title-page h1 { font-size: 2.6em; line-height: 1.12; font-weight: 600; margin: 0; text-transform: var(--bk-ch-case); font-variant: var(--bk-ch-variant); letter-spacing: var(--bk-ch-spacing); hyphens: manual; }
+.bk-title-page .orn { margin: 1em 0; font-size: 1.9em; line-height: 1; }
+.bk-title-page .by { font-size: 1.3em; font-style: italic; }
+.bk-copy-page { position: absolute; display: flex; align-items: flex-end; justify-content: center; text-align: center; font-size: 0.78em; line-height: 1.5; color: #222; white-space: pre-line; }
+
+.bk-blank { background: #fff; }
+
+/* ---- stampa: ogni .bk-page / .bk-sheet è una pagina del PDF ---- */
+.bk-print-root { display: none; }
+@media print {
+  html, body { background: #fff !important; margin: 0 !important; padding: 0 !important; height: auto !important; overflow: visible !important; }
+  body > *:not(.bk-print-root) { display: none !important; }
+  .bk-print-root { display: block !important; position: static !important; }
+  .bk-print-root > .bk-page, .bk-print-root > .bk-sheet, .bk-print-root > .bk-coverpage { break-after: page; page-break-after: always; box-shadow: none !important; margin: 0 !important; transform: none !important; }
+  .bk-print-root > :last-child { break-after: auto; page-break-after: auto; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+/* ---- fogli per la rilegatura ---- */
+.bk-sheet { position: relative; background: #fff; overflow: hidden; flex: none; }
+.bk-sheet .slot { position: absolute; overflow: hidden; }
+.bk-sheet .mark { position: absolute; background: #000; }
+.bk-sheet .fold { position: absolute; border-left: 0.3mm dashed #888; }
+.bk-sheet .label { position: absolute; font: 6pt/1 system-ui, sans-serif; color: #888; }
+
+/* ---- copertina ---- */
+.bk-coverpage { position: relative; overflow: hidden; flex: none; background: #fff; }
+.bk-coverpage .panel { position: absolute; overflow: hidden; }
+.bk-coverpage .folds line { stroke: #888; stroke-width: 0.25; stroke-dasharray: 1.5 1; }

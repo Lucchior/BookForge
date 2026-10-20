@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+<title>BookForge Web</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/fonts.css">
+<link rel="stylesheet" href="css/book.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><img src="icon.svg" alt="" width="28" height="28"><span>BookForge <b>Web</b></span></div>
+  <nav id="tabs" class="tabs" aria-label="Fasi di lavoro">
+    <button data-tab="import" class="on"><i>1</i> Importa</button>
+    <button data-tab="text"><i>2</i> Capitoli e testo</button>
+    <button data-tab="look"><i>3</i> Aspetto</button>
+    <button data-tab="preview"><i>4</i> Anteprima</button>
+    <button data-tab="bind"><i>5</i> Rilegatura</button>
+    <button data-tab="cover"><i>6</i> Copertina</button>
+  </nav>
+  <div class="topact">
+    <button class="btn small" id="btnSave" title="Salva tutto il lavoro in un file .bookforge">Salva progetto</button>
+  </div>
+</header>
+
+<main>
+  <!-- 1. IMPORTA -->
+  <section id="tab-import" class="tab on">
+    <div class="wrap narrow">
+      <h1>Da ebook a libro da stampare</h1>
+      <p class="lead">Carica un ebook, controlla l'impaginazione nell'anteprima e stampa — anche in fascicoli da piegare e cucire a mano. Tutto resta sul tuo computer: nessun file viene inviato da nessuna parte.</p>
+
+      <label class="drop" id="drop" tabindex="0">
+        <input type="file" id="fileIn" accept=".epub,.docx,.md,.markdown,.txt,.bookforge" hidden>
+        <strong>Trascina qui il file</strong>
+        <span>oppure clicca per scegliere — EPUB, DOCX, Markdown, TXT o un progetto .bookforge</span>
+      </label>
+      <p class="row-actions"><button class="btn" id="btnSample">Prova con un libro di esempio</button><button class="btn" id="btnRestore" hidden>Ripristina l'ultimo lavoro</button></p>
+
+      <div id="bookInfo" hidden>
+        <h2>Dati del libro</h2>
+        <div class="grid2">
+          <div class="frow"><label for="bkTitle">Titolo</label><input id="bkTitle" type="text"></div>
+          <div class="frow"><label for="bkAuthor">Autore</label><input id="bkAuthor" type="text"></div>
+          <div class="frow"><label for="bkLang">Lingua del testo</label><select id="bkLang"></select><small>Serve per la sillabazione e le virgolette.</small></div>
+          <div class="frow"><label>Copertina importata</label><div id="coverThumb" class="thumb">nessuna</div></div>
+        </div>
+        <p id="bookStats" class="stat"></p>
+        <p class="row-actions">
+          <button class="btn primary" data-goto="text">Controlla i capitoli →</button>
+          <button class="btn" id="expTxt">Esporta TXT</button>
+          <button class="btn" id="expHtml">Esporta HTML</button>
+          <button class="btn" id="expEpub">Esporta EPUB</button>
+        </p>
+      </div>
+      <p class="fine">Formati: EPUB (senza DRM), DOCX, Markdown, TXT. I PDF non si possono importare perché il testo andrebbe perso. Il testo importato viene ripulito da script, stili e link.</p>
+    </div>
+  </section>
+
+  <!-- 2. CAPITOLI E TESTO -->
+  <section id="tab-text" class="tab">
+    <div class="split">
+      <aside class="side">
+        <div class="side-head">
+          <b>Capitoli</b>
+          <span class="muted" id="chCount"></span>
+        </div>
+        <div class="side-tools">
+          <button class="btn small" id="chAdd">+ Capitolo</button>
+          <button class="btn small" id="btnClean">Pulizia testo…</button>
+          <button class="btn small" id="btnFind">Cerca/sostituisci…</button>
+          <button class="btn small" id="btnUndo" disabled>Annulla pulizia</button>
+        </div>
+        <ol id="chList" class="chlist"></ol>
+      </aside>
+      <div class="main-pane">
+        <div id="edEmpty" class="empty">Importa un libro per modificarlo.</div>
+        <div id="edBox" hidden>
+          <div class="ed-top">
+            <input id="edTitle" type="text" aria-label="Titolo del capitolo" placeholder="Titolo del capitolo">
+          </div>
+          <div class="ed-tools" role="toolbar" aria-label="Formattazione">
+            <button class="btn small" data-cmd="bold" title="Grassetto"><b>G</b></button>
+            <button class="btn small" data-cmd="italic" title="Corsivo"><i>C</i></button>
+            <button class="btn small" data-cmd="h2" title="Sottotitolo di sezione">Sottotitolo</button>
+            <button class="btn small" data-cmd="p" title="Paragrafo normale">Paragrafo</button>
+            <button class="btn small" data-cmd="quote" title="Citazione">Citazione</button>
+            <button class="btn small" data-cmd="hr" title="Separatore di scena">* * *</button>
+            <button class="btn small" data-cmd="undo" title="Annulla">↶</button>
+            <button class="btn small" data-cmd="redo" title="Ripeti">↷</button>
+            <span class="grow"></span>
+            <button class="btn small" id="edSplit" title="Il testo dal cursore in poi diventa un nuovo capitolo">Dividi qui</button>
+          </div>
+          <div id="editor" class="editor" contenteditable="true" spellcheck="true" aria-label="Testo del capitolo"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. ASPETTO -->
+  <section id="tab-look" class="tab">
+    <div class="split">
+      <aside class="side wide"><div id="lookForm"></div>
+        <p class="row-actions pad"><button class="btn small" id="resetLook">Ripristina valori iniziali</button></p>
+      </aside>
+      <div class="main-pane" id="lookView"></div>
+    </div>
+  </section>
+
+  <!-- 4. ANTEPRIMA -->
+  <section id="tab-preview" class="tab">
+    <div class="main-pane full" id="prevView"></div>
+  </section>
+
+  <!-- 5. RILEGATURA -->
+  <section id="tab-bind" class="tab">
+    <div class="split">
+      <aside class="side wide">
+        <div id="bindForm"></div>
+        <div id="bindSummary" class="summary"></div>
+        <div class="print-btns">
+          <button class="btn primary" id="prAll">Stampa tutto (fronte/retro)</button>
+          <button class="btn" id="prFronts">Solo fronti</button>
+          <button class="btn" id="prBacks">Solo retri</button>
+          <button class="btn" id="prPages">Pagine singole (senza fogli)</button>
+        </div>
+        <p class="fine pad">Nella finestra di stampa scegli <b>Salva come PDF</b> per ottenere il file, oppure la stampante. Imposta <b>scala 100% / dimensione reale</b> e nessun margine. Fai prima una prova con un solo foglio.</p>
+      </aside>
+      <div class="main-pane" id="bindView"></div>
+    </div>
+  </section>
+
+  <!-- 6. COPERTINA -->
+  <section id="tab-cover" class="tab">
+    <div class="split">
+      <aside class="side wide">
+        <div id="coverForm"></div>
+        <div id="coverSummary" class="summary"></div>
+        <p class="row-actions pad"><button class="btn primary" id="prCover">Stampa copertina</button></p>
+        <p class="fine pad">Il dorso dipende dal numero di pagine e dallo spessore della carta: controlla con una pagina di prova prima di incollare.</p>
+      </aside>
+      <div class="main-pane" id="coverView"></div>
+    </div>
+  </section>
+</main>
+
+<div id="busy" hidden><div class="busy-box"><div id="busyMsg">Attendi…</div><div class="bar"><i id="busyBar"></i></div></div></div>
+
+<script src="js/util.js"></script>
+<script src="js/zip.js"></script>
+<script src="js/sanitize.js"></script>
+<script src="js/importers.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/impose.js"></script>
+<script src="js/cover.js"></script>
+<script src="js/textops.js"></script>
+<script src="js/export.js"></script>
+<script src="js/sample.js"></script>
+<script src="js/viewer.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
