@@ -89,6 +89,12 @@ label { font-size: .88rem; }
 #edBox { display: flex; flex-direction: column; height: 100%; min-height: 0; }
 .ed-top { padding: 12px 18px 0; }
 .ed-top input { font: 700 1.3rem Georgia, serif; }
+.ed-meta { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; padding: 8px 18px 0; font-size: .88rem; }
+.ed-meta select { width: auto; }
+.ed-meta .chk { display: flex; align-items: center; gap: 6px; }
+.ed-main { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.chrow.toc { background: color-mix(in srgb, var(--accent2) 8%, transparent); border-left: 3px solid var(--accent2); }
+.chrow.toc.on { background: color-mix(in srgb, var(--accent2) 22%, transparent); }
 .ed-tools { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 18px; border-bottom: 1px solid var(--line); }
 .editor { flex: 1; overflow: auto; padding: 18px max(22px, calc((100% - 42em) / 2)) 60px; font: 1.05rem/1.6 Georgia, serif; outline: none; background: var(--panel); }
 .editor p { margin: 0 0 .7em; }
@@ -140,3 +146,9 @@ label { font-size: .88rem; }
 .modal-head h3 { margin: 16px 0 8px; }
 .modal-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
 .modal .frow { margin: 6px 0; }
+
+.cover-up { padding: 12px 14px; border-bottom: 1px solid var(--line, #e3dfd4); display: grid; gap: 6px; }
+.cover-up .row-actions { margin: 0; }
+
+.save-box { margin: 10px 14px; padding: 10px 12px; border: 1px solid var(--line, #e3dfd4); border-radius: 8px; display: grid; gap: 8px; }
+.save-box .row-actions { margin: 0; display: flex; gap: 8px; flex-wrap: wrap; }

@@ -112,6 +112,11 @@
   font-weight: 500;
 }
 
+/* pagine iniziali (dediche, presentazioni): testo centrato in corsivo, senza testata di capitolo */
+.bk-flow.front { text-align: center; font-style: italic; hyphens: manual; -webkit-hyphens: manual; padding-top: calc(var(--bk-th) * 0.22); }
+.bk-flow.front p { text-indent: 0; margin-bottom: 0.8em; }
+.bk-flow.front .fr-title { font-style: normal; font-variant: small-caps; letter-spacing: 0.1em; margin-bottom: 1.4em; font-family: var(--bk-head-font); font-size: 1.1em; }
+
 /* indice */
 .toc-head { text-align: center; padding-top: var(--bk-ch-sink); margin-bottom: var(--bk-ch-after); }
 .toc-head h1 { font-family: var(--bk-head-font); font-size: var(--bk-ch-size); font-weight: 600; margin: 0; text-transform: var(--bk-ch-case); font-variant: var(--bk-ch-variant); letter-spacing: var(--bk-ch-spacing); }

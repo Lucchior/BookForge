@@ -36,7 +36,8 @@
           title = r.title;
           html = r.html;
         }
-        return { id: BF.uid(), title: title || 'Capitolo ' + (i + 1), html, include: c.include !== false };
+        const t = title || 'Capitolo ' + (i + 1);
+        return Object.assign({ id: BF.uid(), title: t, html, include: c.include !== false, showTitle: false }, BF.autoKind(t, html));
       })
       .filter((c) => c.html.trim() || c.title);
     if (!book.chapters.length) throw new Error('Non ho trovato nessun testo nel file.');

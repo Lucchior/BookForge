@@ -34,7 +34,7 @@
   const autosaveSoon = BF.debounce(() => {
     if (!state.book) return;
     try {
-      const json = BF.projectToJson(state);
+      const json = BF.projectToJson(state, { noOwnCover: true });
       if (json.length < 4500000) BF.store.set('autosave', json);
     } catch (e) { /* ok */ }
   }, 2500);
@@ -75,6 +75,8 @@
     }
     state.dirty = !keepSettings;
     state.layout = null;
+    BF.ensureToc(book, state.S.toc !== false);
+    state.lookSel = null;
     syncBookInfo();
     showTab('import');
   }
@@ -140,8 +142,9 @@
     const th = $('#coverThumb');
     th.innerHTML = '';
     if (b.cover) th.appendChild(el('img', { src: b.cover, alt: 'Copertina' })); else th.textContent = 'nessuna';
-    const words = b.chapters.filter((c) => c.include).reduce((a, c) => a + BF.wordCount(c.html), 0);
-    $('#bookStats').textContent = `${b.chapters.filter((c) => c.include).length} capitoli inclusi su ${b.chapters.length} · circa ${words.toLocaleString('it-IT')} parole`;
+    const real = BF.realChapters(b);
+    const words = real.filter((c) => c.include).reduce((a, c) => a + BF.wordCount(c.html), 0);
+    $('#bookStats').textContent = `${real.filter((c) => c.include).length} capitoli inclusi su ${real.length} · circa ${words.toLocaleString('it-IT')} parole`;
   }
   $('#bkTitle').addEventListener('input', (e) => { state.book.title = e.target.value; changed(); });
   $('#bkAuthor').addEventListener('input', (e) => { state.book.author = e.target.value; changed(); });
@@ -170,7 +173,7 @@
   function flushEditor() {
     clearTimeout(edTimer);
     const ch = state.book && state.book.chapters[state.cur];
-    if (!ch || $('#edBox').hidden) return;
+    if (!ch || ch.kind === 'toc' || $('#edBox').hidden) return;
     const html = BF.sanitizeHtml(editor.innerHTML);
     if (html !== ch.html) { ch.html = html; changed(); }
   }
@@ -181,20 +184,21 @@
     $('#edBox').hidden = !b;
     $('#edEmpty').hidden = !!b;
     if (!b) return;
-    $('#chCount').textContent = b.chapters.length + ' totali';
+    $('#chCount').textContent = BF.realChapters(b).length + ' capitoli';
     state.cur = BF.clamp(state.cur, 0, b.chapters.length - 1);
     b.chapters.forEach((c, i) => {
-      const words = BF.wordCount(c.html);
-      const row = el('li', { class: 'chrow' + (i === state.cur ? ' on' : '') + (c.include ? '' : ' off'), 'data-i': i },
-        el('input', { type: 'checkbox', 'aria-label': 'Includi nel libro', checked: c.include, 'data-act': 'inc' }),
-        el('span', { class: 'ttl' }, c.title || '(senza titolo)'),
+      const isToc = c.kind === 'toc';
+      const info = isToc ? 'si genera da solo' : [BF.wordCount(c.html).toLocaleString('it-IT') + ' parole', c.kind === 'front' ? 'pagina iniziale' : '', c.inToc === false ? 'fuori indice' : ''].filter(Boolean).join(' · ');
+      const row = el('li', { class: 'chrow' + (i === state.cur ? ' on' : '') + (c.include ? '' : ' off') + (isToc ? ' toc' : ''), 'data-i': i },
+        el('input', { type: 'checkbox', 'aria-label': isToc ? 'Mostra l\'indice nel libro' : 'Includi nel libro', checked: c.include, 'data-act': 'inc' }),
+        el('span', { class: 'ttl' }, isToc ? '☰ ' + (state.S.tocTitle || 'Indice') : c.title || '(senza titolo)'),
         el('span', { class: 'meta' },
-          el('span', null, words.toLocaleString('it-IT') + ' parole'),
+          el('span', null, info),
           el('span', { class: 'grow' }),
           el('button', { class: 'btn', 'data-act': 'up', title: 'Sposta su', disabled: i === 0 }, '↑'),
           el('button', { class: 'btn', 'data-act': 'down', title: 'Sposta giù', disabled: i === b.chapters.length - 1 }, '↓'),
-          el('button', { class: 'btn', 'data-act': 'merge', title: 'Unisci al capitolo successivo', disabled: i === b.chapters.length - 1 }, '⤓'),
-          el('button', { class: 'btn', 'data-act': 'del', title: 'Elimina capitolo' }, '✕')));
+          isToc ? null : el('button', { class: 'btn', 'data-act': 'merge', title: 'Unisci al capitolo successivo', disabled: i === b.chapters.length - 1 || b.chapters[i + 1].kind === 'toc' }, '⤓'),
+          isToc ? null : el('button', { class: 'btn', 'data-act': 'del', title: 'Elimina capitolo' }, '✕')));
       list.appendChild(row);
     });
     loadEditor();
@@ -202,10 +206,29 @@
 
   function loadEditor() {
     const ch = state.book.chapters[state.cur];
-    $('#edTitle').value = ch ? ch.title : '';
-    editor.innerHTML = ch ? ch.html : '';
+    const isToc = !!ch && ch.kind === 'toc';
+    $('#edMeta').hidden = $('#edMain').hidden = isToc;
+    $('#tocBox').hidden = !isToc;
+    $('#edTitle').value = isToc ? state.S.tocTitle || '' : ch ? ch.title : '';
+    $('#edTitle').setAttribute('aria-label', isToc ? 'Titolo dell\'indice' : 'Titolo del capitolo');
+    if (!isToc && ch) {
+      $('#edKind').value = ch.kind === 'front' ? 'front' : 'chapter';
+      $('#edInToc').checked = ch.inToc !== false;
+      $('#edShowTitle').checked = !!ch.showTitle;
+      $('#edShowTitleWrap').hidden = ch.kind !== 'front';
+    }
+    editor.innerHTML = ch && !isToc ? ch.html : '';
     editor.scrollTop = 0;
   }
+  $('#edKind').addEventListener('change', (e) => {
+    const ch = state.book.chapters[state.cur];
+    ch.kind = e.target.value;
+    ch.inToc = ch.kind !== 'front';
+    ch.showTitle = false;
+    changed(); renderChapters();
+  });
+  $('#edInToc').addEventListener('change', (e) => { state.book.chapters[state.cur].inToc = e.target.checked; changed(); renderChapters(); });
+  $('#edShowTitle').addEventListener('change', (e) => { state.book.chapters[state.cur].showTitle = e.target.checked; changed(); });
 
   list.addEventListener('click', (e) => {
     const row = e.target.closest('.chrow');
@@ -228,9 +251,9 @@
 
   $('#edTitle').addEventListener('input', (e) => {
     const ch = state.book.chapters[state.cur];
-    ch.title = e.target.value;
     const t = list.querySelector('.chrow.on .ttl');
-    if (t) t.textContent = ch.title || '(senza titolo)';
+    if (ch.kind === 'toc') { state.S.tocTitle = e.target.value; ch.title = e.target.value; if (t) t.textContent = '☰ ' + (e.target.value || 'Indice'); }
+    else { ch.title = e.target.value; if (t) t.textContent = ch.title || '(senza titolo)'; }
     changed();
   });
   editor.addEventListener('input', () => { clearTimeout(edTimer); edTimer = setTimeout(flushEditor, 500); });
@@ -275,6 +298,7 @@
     // indice nei blocchi puliti: contiamo i blocchi non vuoti prima della posizione
     let idx = 0;
     for (let i = 0; i < pos; i++) if (blocks[i].textContent.trim() || blocks[i].querySelector('img') || blocks[i].tagName === 'HR') idx++;
+    if (state.book.chapters[state.cur].kind === 'toc') return;
     if (BF.chapters.splitAt(state.book, state.cur, idx, title)) { changed(); renderChapters(); BF.toast('Capitolo diviso.'); }
     else BF.toast('Non posso dividere proprio lì: scegli un punto in mezzo al testo.');
   });
@@ -364,24 +388,66 @@
   function rebuildForms() {
     BF.buildForm(lookForm, BF.SCHEMA, state.S, () => { changed(); lookSoon(); });
     BF.buildForm($('#bindForm'), BIND_SCHEMA, state.B, () => { changed(); refreshBind(); }, { prefix: 'b_' });
-    BF.buildForm($('#coverForm'), COVER_SCHEMA, state.C, () => { changed(); refreshCover(); }, { prefix: 'c_' });
+    BF.buildForm($('#coverForm'), COVER_SCHEMA, state.C, (k) => { changed(); if (k === 'mode') addCoverUpload(); refreshCoverSoon(); }, { prefix: 'c_' });
     addCoverUpload();
     syncBookInfo();
   }
   const lookSoon = BF.debounce(() => refreshLook(), 350);
-  let lookToken = 0;
+  const refreshCoverSoon = BF.debounce(() => refreshCover(true), 250);
+  let lookToken = 0, lookSelEl, lookNote;
+  /** Voci scegliibili nell'anteprima di "Aspetto": frontespizio, indice e ogni capitolo incluso. */
+  function lookOptions() {
+    const o = [];
+    if (state.S.titlePage || state.S.copyrightPage) o.push({ v: 'front', t: 'Frontespizio e copyright' });
+    state.book.chapters.filter((c) => c.include).forEach((c) => {
+      if (c.kind === 'toc') o.push({ v: c.id, t: '☰ ' + (state.S.tocTitle || 'Indice') });
+      else o.push({ v: c.id, t: (c.kind === 'front' ? '· ' : '') + (c.title.length > 38 ? c.title.slice(0, 37) + '…' : c.title) });
+    });
+    return o;
+  }
+  function fillLookSel() {
+    const opts = lookOptions();
+    if (!opts.some((o) => o.v === state.lookSel)) {
+      const firstChapter = state.book.chapters.find((c) => c.include && c.kind === 'chapter');
+      state.lookSel = (firstChapter || state.book.chapters.find((c) => c.include && c.kind !== 'toc') || {}).id || (opts[0] && opts[0].v);
+    }
+    lookSelEl.innerHTML = '';
+    opts.forEach((o) => lookSelEl.appendChild(el('option', { value: o.v, selected: o.v === state.lookSel }, o.t)));
+  }
+  function stepLook(d) {
+    const opts = lookOptions();
+    const i = opts.findIndex((o) => o.v === state.lookSel) + d;
+    if (i >= 0 && i < opts.length) { state.lookSel = opts[i].v; refreshLook(); }
+  }
   async function refreshLook() {
     if (!state.book) return;
     if (!lookViewer) {
-      lookViewer = new BF.Viewer($('#lookView'));
+      lookViewer = new BF.Viewer($('#lookView'), { extra: (box) => {
+        lookSelEl = el('select', { 'aria-label': 'Capitolo da vedere', onchange: (e) => { state.lookSel = e.target.value; refreshLook(); } });
+        lookNote = el('span', { class: 'muted fine' });
+        box.append(el('button', { class: 'btn small', title: 'Capitolo precedente', onclick: () => stepLook(-1) }, '« Cap.'), lookSelEl,
+          el('button', { class: 'btn small', title: 'Capitolo successivo', onclick: () => stepLook(1) }, 'Cap. »'), lookNote);
+      } });
     }
+    fillLookSel();
     const token = ++lookToken;
     lookViewer.clear('Impagino…');
     try {
-      const L = await BF.layout(state.book, state.S, { limit: 2 });
+      const sel = state.lookSel;
+      const item = state.book.chapters.find((c) => c.id === sel);
+      let L, start = 0;
+      if (sel === 'front' || (item && item.kind === 'toc')) {
+        // indice e frontespizio dipendono da tutto il libro: serve l'impaginazione completa
+        L = await ensureLayout();
+        start = sel === 'front' ? 0 : (L.sections.find((x) => x.id === sel) || { page: 0 }).page;
+        lookNote.textContent = '';
+      } else {
+        L = await BF.layout(state.book, state.S, { only: sel });
+        start = L.total > 1 ? 1 : 0; // la seconda pagina: si vedono testo, intestazione e numero
+        lookNote.textContent = 'Numeri di pagina indicativi';
+      }
       if (token !== lookToken) return;
-      const first = L.chapters[0].page;
-      lookViewer.setProvider(BF.spreadProvider(L, state.S, state.book, { startPage: first + 1 }));
+      lookViewer.setProvider(BF.spreadProvider(L, state.S, state.book, { startPage: start }));
     } catch (e) { lookViewer.clear(e.message); }
   }
   $('#resetLook').addEventListener('click', () => {
@@ -400,7 +466,7 @@
         chSel = el('select', { 'aria-label': 'Vai al capitolo', onchange: (e) => {
           const L = state.layout;
           if (!L || e.target.value === '') return;
-          const p = L.chapters[+e.target.value].page;
+          const p = L.sections[+e.target.value].page;
           prevViewer.go(prevSingle ? p : Math.floor((p + 1) / 2));
         } });
         singleBox = el('input', { type: 'checkbox', id: 'pvSingle', onchange: (e) => { prevSingle = e.target.checked; show(true); } });
@@ -413,7 +479,7 @@
       prevViewer.setProvider(BF.spreadProvider(L, state.S, state.book, { single: prevSingle }), k);
       chSel.innerHTML = '';
       chSel.appendChild(el('option', { value: '' }, 'Vai al capitolo…'));
-      L.chapters.forEach((c, i) => chSel.appendChild(el('option', { value: i }, (i + 1) + '. ' + (c.title.length > 34 ? c.title.slice(0, 33) + '…' : c.title))));
+      L.sections.forEach((c, i) => chSel.appendChild(el('option', { value: i }, (c.kind === 'toc' ? '☰ ' : '') + (c.title.length > 34 ? c.title.slice(0, 33) + '…' : c.title))));
     };
     prevViewer.clear('');
     try {
@@ -470,13 +536,40 @@
   }
 
   // ------------------------------------------------------------------ COPERTINA
+  const isCase = (c) => c.mode === 'case';
   const COVER_SCHEMA = [
-    { group: 'Dorso', items: [
+    { group: 'Tipo di copertina', items: [
+      { key: 'mode', label: 'Che copertina stampare', type: 'select', options: [['case', 'Cartonata: la mia immagine + segni di taglio e piega'], ['simple', 'Semplice, disegnata dall\'app (brossura)']] },
+    ] },
+    { group: 'Cartoni (misure in mm)', show: isCase, items: [
+      { key: 'boardW', label: 'Larghezza cartone (quarta e prima)', type: 'number', min: 0, max: 400, step: 0.5, help: '0 = larghezza della pagina + 3 mm.' },
+      { key: 'boardH', label: 'Altezza cartone', type: 'number', min: 0, max: 500, step: 0.5, help: '0 = altezza della pagina + 6 mm.' },
+      { key: 'spineAuto', label: 'Larghezza del cartone del dorso dal numero di pagine', type: 'checkbox' },
+      { key: 'spineManual', label: 'Larghezza del cartone del dorso', type: 'number', min: 0, max: 100, step: 0.1, show: (c) => !c.spineAuto },
+      { key: 'hinge', label: 'Spazio tra i cartoni (cerniera)', type: 'number', min: 0, max: 30, step: 0.5 },
+      { key: 'turnIn', label: 'Risvolto: carta che si piega all\'interno', type: 'number', min: 0, max: 40, step: 0.5 },
+      { key: 'cornerGap', label: 'Taglio d\'angolo a 45°: distanza dall\'angolo del cartone', type: 'number', min: 0, max: 20, step: 0.5, help: 'Di solito poco più dello spessore del cartone.' },
+    ] },
+    { group: 'La mia immagine', show: isCase, items: [
+      { key: 'imgMode', label: 'Come sta sul foglio', type: 'select', options: [['sheet', 'Occupa tutto il foglio (risvolti compresi)'], ['boards', 'Solo la zona dei cartoni'], ['custom', 'Con i miei margini']] },
+      { key: 'imgT', label: 'Margine sopra (mm)', type: 'number', min: 0, max: 200, step: 0.5, show: (c) => c.imgMode === 'custom' },
+      { key: 'imgB', label: 'Margine sotto (mm)', type: 'number', min: 0, max: 200, step: 0.5, show: (c) => c.imgMode === 'custom' },
+      { key: 'imgL', label: 'Margine a sinistra (mm)', type: 'number', min: 0, max: 200, step: 0.5, show: (c) => c.imgMode === 'custom' },
+      { key: 'imgR', label: 'Margine a destra (mm)', type: 'number', min: 0, max: 200, step: 0.5, show: (c) => c.imgMode === 'custom' },
+      { key: 'ownFit', label: 'Adattamento', type: 'select', options: [['stretch', 'Adatta alla zona (può deformare)'], ['cover', 'Riempi e taglia l\'eccedenza'], ['contain', 'Mostra intera']] },
+    ] },
+    { group: 'Segni e guida', show: isCase, items: [
+      { key: 'showMarks', label: 'Segni di taglio e piega fuori dal foglio', type: 'checkbox' },
+      { key: 'markMargin', label: 'Carta extra attorno al foglio per i segni (mm)', type: 'number', min: 0, max: 30, step: 0.5, show: (c) => c.showMarks },
+      { key: 'showBoards', label: 'Disegna anche i contorni dei cartoni sull\'immagine', type: 'checkbox', help: 'Utile per una prova: poi toglilo.' },
+      { key: 'guideMirror', label: 'Guida specchiata (per stamparla sul retro del foglio)', type: 'checkbox' },
+    ] },
+    { group: 'Dorso', show: (c) => c.mode === 'simple' || c.spineAuto, items: [
       { key: 'paper', label: 'Carta interna', type: 'select', options: [['0.09', '70 g — 0,09 mm per foglio'], ['0.1', '80 g — 0,10 mm per foglio'], ['0.115', '90 g — 0,115 mm per foglio'], ['0.15', '120 g — 0,15 mm per foglio']] },
       { key: 'boardExtra', label: 'Spessore extra del dorso (mm)', type: 'number', min: 0, max: 20, step: 0.1, help: 'Per colla o cartoncino della copertina.' },
-      { key: 'bleed', label: 'Abbondanza (mm)', type: 'number', min: 0, max: 10, step: 0.5 },
+      { key: 'bleed', label: 'Abbondanza (mm)', type: 'number', min: 0, max: 10, step: 0.5, show: (c) => c.mode === 'simple' },
     ] },
-    { group: 'Aspetto', items: [
+    { group: 'Aspetto', show: (c) => c.mode === 'simple', items: [
       { key: 'bg', label: 'Colore di sfondo', type: 'color' },
       { key: 'fg', label: 'Colore del testo', type: 'color' },
       { key: 'accent', label: 'Colore del dettaglio', type: 'color' },
@@ -491,39 +584,88 @@
       { key: 'back', label: 'Testo della quarta di copertina', type: 'textarea' },
     ] },
   ];
+  /** Pulsanti per scegliere l'immagine: nella copertina cartonata è la MIA immagine (intera, senza ridurla). */
   function addCoverUpload() {
-    const f = $('#coverForm');
+    const f = $('#coverUp');
+    if (!f) return;
+    f.innerHTML = '';
+    const own = isCase(state.C);
     const inp = el('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp,image/gif', hidden: true });
     inp.addEventListener('change', async () => {
       const file = inp.files[0];
       if (!file) return;
-      if (file.size > 25 * 1024 * 1024) return BF.toast('Immagine troppo grande (oltre 25 MB).', 'err');
-      state.book.cover = await BF.shrinkImage(await BF.fileToDataURL(file));
-      state.C.useImage = true;
-      changed(); rebuildForms(); refreshCover();
+      if (file.size > 40 * 1024 * 1024) return BF.toast('Immagine troppo grande (oltre 40 MB).', 'err');
+      if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type)) return BF.toast('Formato non supportato: usa PNG, JPG o WebP.', 'err');
+      const url = await BF.fileToDataURL(file);
+      if (own) state.book.ownCover = url;
+      else { state.book.cover = await BF.shrinkImage(url); state.C.useImage = true; }
+      changed(); addCoverUpload(); refreshCover(true);
     });
-    const row = el('div', { class: 'row-actions pad' },
-      el('button', { class: 'btn small', onclick: () => inp.click() }, 'Scegli immagine…'),
-      el('button', { class: 'btn small', onclick: () => { state.book.cover = null; changed(); rebuildForms(); refreshCover(); } }, 'Togli immagine'), inp);
-    f.appendChild(row);
+    const has = own ? state.book && state.book.ownCover : state.book && state.book.cover;
+    f.append(el('div', { class: 'fgroup-up' },
+      el('b', null, own ? 'La mia copertina (quarta + dorso + prima in un\'unica immagine)' : 'Immagine della prima di copertina'),
+      el('div', { class: 'row-actions' },
+        el('button', { class: 'btn small primary', onclick: () => inp.click() }, has ? 'Cambia immagine…' : 'Scegli immagine…'),
+        has ? el('button', { class: 'btn small', onclick: () => { if (own) state.book.ownCover = null; else state.book.cover = null; changed(); addCoverUpload(); refreshCover(true); } }, 'Togli immagine') : '', inp),
+      own ? el('small', { class: 'fine' }, 'Va a sinistra la quarta, al centro il dorso, a destra la prima. L\'immagine non viene rimpicciolita; viene salvata nel file del progetto.') : ''));
   }
+  const PAPERS = [['A4', 210, 297], ['A3', 297, 420], ['A2', 420, 594]];
+  const fits = (w, h, p) => (w <= p[1] && h <= p[2]) || (h <= p[1] && w <= p[2]);
   let coverViewer;
-  async function refreshCover() {
+  async function refreshCover(keep) {
     if (!state.book) return;
     if (!coverViewer) coverViewer = new BF.Viewer($('#coverView'));
+    addCoverUpload();
     coverViewer.clear('Calcolo il dorso…');
+    $('#prGuide').hidden = !isCase(state.C);
+    $('#saveBox').hidden = !isCase(state.C);
+    $('#prCover').textContent = isCase(state.C) ? 'Stampa copertina' : 'Stampa copertina';
     try {
       const L = await ensureLayout();
       const total = Math.ceil(L.total / 4) * 4; // il libro rilegato ha sempre un multiplo di 4 pagine
-      const r = BF.renderCover(state.book, state.S, state.C, state.B.mode === 'none' ? L.total : total);
-      $('#coverSummary').innerHTML = '';
-      $('#coverSummary').append(el('div', null, `Copertina aperta: ${r.dims.W.toFixed(1)} × ${r.dims.H.toFixed(1)} mm`),
-        el('div', null, `Dorso: ${r.dims.spine.toFixed(1)} mm (${r.dims.leaves} fogli di carta, ${total} pagine)`));
+      const sum = $('#coverSummary');
+      sum.innerHTML = '';
+      sum.className = 'summary';
+      if (!isCase(state.C)) {
+        const r = BF.renderCover(state.book, state.S, state.C, state.B.mode === 'none' ? L.total : total);
+        sum.append(el('div', null, `Copertina aperta: ${r.dims.W.toFixed(1)} × ${r.dims.H.toFixed(1)} mm`),
+          el('div', null, `Dorso: ${r.dims.spine.toFixed(1)} mm (${r.dims.leaves} fogli di carta, ${total} pagine)`));
+        coverViewer.setProvider({
+          count: () => 1,
+          label: () => 'quarta · dorso · prima',
+          build: () => { const holder = el('div', { class: 'pg-shadow' }); const c = BF.renderCover(state.book, state.S, state.C, total).el; c.style.boxShadow = 'none'; holder.appendChild(c); return { el: holder, w: r.dims.W, h: r.dims.H }; },
+        }, keep);
+        return;
+      }
+      const d = BF.caseDims(state.S, state.C, total);
+      const f1 = (v) => (Math.round(v * 10) / 10).toString().replace('.', ',');
+      const lines = [
+        `Foglio di copertina (da tagliare): ${f1(d.W)} × ${f1(d.H)} mm`,
+        `Con i segni: ${f1(d.pageW)} × ${f1(d.pageH)} mm` + (() => { const p = PAPERS.find((x) => fits(d.pageW, d.pageH, x)); return p ? ' — entra in un ' + p[0] : ' — più grande di un A2'; })(),
+        `Cartoni: quarta e prima ${f1(d.bw)} × ${f1(d.bh)} mm, dorso ${f1(d.spine)} × ${f1(d.bh)} mm` + (state.C.spineAuto ? ` (${d.leaves} fogli, ${total} pagine)` : ''),
+        `Cerniere ${f1(d.g)} mm · risvolti ${f1(d.T)} mm`,
+      ];
+      lines.forEach((t) => sum.appendChild(el('div', null, t)));
+      if (state.book.ownCover) {
+        const info = await BF.imageInfo(state.book.ownCover);
+        if (info) {
+          const r = BF.caseImageRect(state.C, d);
+          const dpi = Math.round(info.w / (r.w / 25.4));
+          sum.appendChild(el('div', { style: 'margin-top:6px' }, `Immagine ${info.w} × ${info.h} px → circa ${dpi} dpi sul foglio.` + (dpi < 200 ? ' Attenzione: sotto i 200 dpi la stampa può risultare sgranata.' : '')));
+          if (dpi < 200) sum.className = 'summary warn';
+        }
+      } else sum.appendChild(el('div', { style: 'margin-top:6px' }, 'Nessuna immagine caricata: i segni si vedono comunque sul foglio vuoto.'));
       coverViewer.setProvider({
-        count: () => 1,
-        label: () => 'quarta · dorso · prima',
-        build: () => { const holder = el('div', { class: 'pg-shadow' }); const c = BF.renderCover(state.book, state.S, state.C, total).el; c.style.boxShadow = 'none'; holder.appendChild(c); return { el: holder, w: r.dims.W, h: r.dims.H }; },
-      });
+        count: () => 2,
+        label: (i) => (i ? 'guida dei cartoni (si stampa a parte)' : 'copertina: quarta · dorso · prima'),
+        build: (i) => {
+          const holder = el('div', { class: 'pg-shadow' });
+          const c = (i ? BF.renderGuide : BF.renderCase)(state.book, state.S, state.C, total).el;
+          c.style.boxShadow = 'none';
+          holder.appendChild(c);
+          return { el: holder, w: d.pageW, h: d.pageH };
+        },
+      }, keep);
     } catch (e) { coverViewer.clear(e.message); }
   }
 
@@ -537,7 +679,12 @@
     const S = state.S, B = state.B;
     let W = S.pageW, H = S.pageH;
     const nodes = []; // funzioni che creano un nodo alla volta (per non bloccare il browser)
-    if (kind === 'cover') {
+    if (kind === 'case' || kind === 'guide') {
+      const total = Math.ceil(L.total / 4) * 4;
+      const r = (kind === 'guide' ? BF.renderGuide : BF.renderCase)(state.book, S, state.C, total);
+      W = r.dims.pageW; H = r.dims.pageH;
+      nodes.push(() => r.el);
+    } else if (kind === 'cover') {
       const total = Math.ceil(L.total / 4) * 4;
       const r = BF.renderCover(state.book, S, state.C, total);
       W = r.dims.W; H = r.dims.H;
@@ -589,7 +736,24 @@
   $('#prFronts').addEventListener('click', () => printJob('fronts'));
   $('#prBacks').addEventListener('click', () => printJob('backs'));
   $('#prPages').addEventListener('click', () => printJob('pages'));
-  $('#prCover').addEventListener('click', () => printJob('cover'));
+  $('#prCover').addEventListener('click', () => printJob(isCase(state.C) ? 'case' : 'cover'));
+  $('#prGuide').addEventListener('click', () => printJob('guide'));
+  // salvataggio diretto (PDF/PNG) della copertina e della guida, alla misura esatta del foglio con i segni
+  async function saveCase(fmt) {
+    try {
+      const L = await ensureLayout();
+      const total = Math.ceil(L.total / 4) * 4;
+      const what = $('#exWhat').value, dpi = +$('#exDpi').value;
+      busy('Preparo l\'immagine a ' + dpi + ' dpi…', 0.4);
+      await BF.sleep(50);
+      const r = await BF.rasterCase(what, state.book, state.S, state.C, total, dpi);
+      const name = (what === 'guide' ? '-guida-cartoni' : '-copertina') + (fmt === 'pdf' ? '.pdf' : '.png');
+      BF.download(fmt === 'pdf' ? await BF.pdfBlob(r.canvas, r.wMm, r.hMm) : await BF.pngBlob(r.canvas, dpi), fname(name));
+      $('#exInfo').textContent = `Salvato: ${r.canvas.width} × ${r.canvas.height} px, ${r.wMm.toFixed(1)} × ${r.hMm.toFixed(1)} mm.`;
+    } catch (e) { console.error(e); BF.toast(e.message || 'Salvataggio non riuscito.', 'err'); } finally { unbusy(); }
+  }
+  $('#exPdf').addEventListener('click', () => saveCase('pdf'));
+  $('#exPng').addEventListener('click', () => saveCase('png'));
 
   // ------------------------------------------------------------------ avvio
   rebuildForms();

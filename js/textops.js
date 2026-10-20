@@ -88,23 +88,26 @@
       return true;
     },
     remove(book, i) {
+      if (book.chapters[i] && book.chapters[i].kind === 'toc') return false;
       book.chapters.splice(i, 1);
+      return true;
     },
     mergeNext(book, i) {
       const a = book.chapters[i], b = book.chapters[i + 1];
-      if (!a || !b) return false;
+      if (!a || !b || a.kind === 'toc' || b.kind === 'toc') return false;
       a.html += (b.title ? '<h2>' + BF.esc(b.title) + '</h2>' : '') + b.html;
       book.chapters.splice(i + 1, 1);
       return true;
     },
     add(book, i) {
-      const c = { id: BF.uid(), title: 'Nuovo capitolo', html: '<p></p>', include: true };
+      const c = { id: BF.uid(), title: 'Nuovo capitolo', html: '<p></p>', include: true, kind: 'chapter', inToc: true, showTitle: false };
       book.chapters.splice(i + 1, 0, c);
       return c;
     },
     /** Divide il capitolo i nel punto (indice del blocco) blockIndex: i blocchi da lì in poi diventano un nuovo capitolo. */
     splitAt(book, i, blockIndex, title) {
       const c = book.chapters[i];
+      if (!c || c.kind === 'toc') return false;
       const t = document.createElement('template');
       t.innerHTML = c.html;
       const blocks = Array.from(t.content.children);
@@ -115,8 +118,38 @@
       const rest = document.createElement('div');
       tail.forEach((b) => rest.appendChild(b.cloneNode(true)));
       c.html = head.innerHTML;
-      book.chapters.splice(i + 1, 0, { id: BF.uid(), title: title || 'Nuovo capitolo', html: rest.innerHTML, include: true });
+      book.chapters.splice(i + 1, 0, { id: BF.uid(), title: title || 'Nuovo capitolo', html: rest.innerHTML, include: true, kind: 'chapter', inToc: true, showTitle: false });
       return true;
     },
+  };
+})();
+
+/* ---- indice e tipi di capitolo ---- */
+(function () {
+  const BF = window.BF;
+
+  /** Capitoli veri (esclude la voce speciale "Indice"). */
+  BF.realChapters = (book, onlyIncluded) => book.chapters.filter((c) => c.kind !== 'toc' && (!onlyIncluded || c.include));
+
+  /** Riconosce dediche, copyright, frontespizi: pagine iniziali che non vanno nell'indice. */
+  const FRONT_RE = /(dedic|epigraf|copyright|colophon|frontespizio|title\s*-?page|titlepage|half\s*-?title|presentazione|dedication|epigraph|all rights|diritti riservati|^\s*(cover|copertina)\b)/i;
+  BF.autoKind = function (title, html) {
+    const words = BF.wordCount(html);
+    if (FRONT_RE.test(title || '') && words < 400) return { kind: 'front', inToc: false };
+    return { kind: 'chapter', inToc: true };
+  };
+
+  /** Garantisce che esista la voce "Indice" nell'elenco (di default dopo le pagine iniziali). */
+  BF.ensureToc = function (book, includeDefault) {
+    book.chapters.forEach((c) => {
+      if (!c.kind) Object.assign(c, { kind: 'chapter' });
+      if (c.kind !== 'toc' && c.inToc === undefined) c.inToc = true;
+      if (c.showTitle === undefined) c.showTitle = false;
+    });
+    if (book.chapters.some((c) => c.kind === 'toc')) return book;
+    let i = 0;
+    while (i < book.chapters.length && (book.chapters[i].kind === 'front' || book.chapters[i].inToc === false || !book.chapters[i].include)) i++;
+    book.chapters.splice(i, 0, { id: BF.uid(), title: 'Indice', html: '', include: includeDefault !== false, kind: 'toc', inToc: false, showTitle: false });
+    return book;
   };
 })();

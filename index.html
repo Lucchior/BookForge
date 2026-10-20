@@ -83,6 +83,13 @@
           <div class="ed-top">
             <input id="edTitle" type="text" aria-label="Titolo del capitolo" placeholder="Titolo del capitolo">
           </div>
+          <div class="ed-meta" id="edMeta">
+            <label>Tipo <select id="edKind"><option value="chapter">Capitolo</option><option value="front">Pagina iniziale (dedica, presentazione…)</option></select></label>
+            <label class="chk"><input type="checkbox" id="edInToc"> Voce nell'indice</label>
+            <label class="chk" id="edShowTitleWrap" hidden><input type="checkbox" id="edShowTitle"> Mostra il titolo</label>
+          </div>
+          <div id="tocBox" class="empty" hidden>L'indice si genera da solo con i capitoli che hanno la spunta «Voce nell'indice».<br>Cambia il titolo qui sopra; con le frecce nell'elenco lo sposti dove vuoi (anche in fondo al libro). La numerazione dipende da dove lo metti: vedi «Aspetto → Pagine iniziali».</div>
+          <div id="edMain" class="ed-main">
           <div class="ed-tools" role="toolbar" aria-label="Formattazione">
             <button class="btn small" data-cmd="bold" title="Grassetto"><b>G</b></button>
             <button class="btn small" data-cmd="italic" title="Corsivo"><i>C</i></button>
@@ -96,6 +103,7 @@
             <button class="btn small" id="edSplit" title="Il testo dal cursore in poi diventa un nuovo capitolo">Dividi qui</button>
           </div>
           <div id="editor" class="editor" contenteditable="true" spellcheck="true" aria-label="Testo del capitolo"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -138,10 +146,20 @@
   <section id="tab-cover" class="tab">
     <div class="split">
       <aside class="side wide">
+        <div id="coverUp" class="cover-up"></div>
         <div id="coverForm"></div>
         <div id="coverSummary" class="summary"></div>
-        <p class="row-actions pad"><button class="btn primary" id="prCover">Stampa copertina</button></p>
-        <p class="fine pad">Il dorso dipende dal numero di pagine e dallo spessore della carta: controlla con una pagina di prova prima di incollare.</p>
+        <p class="row-actions pad"><button class="btn primary" id="prCover">Stampa copertina</button><button class="btn" id="prGuide">Stampa guida dei cartoni</button></p>
+        <div id="saveBox" class="save-box">
+          <b>Salva senza stampare</b>
+          <div class="row-actions">
+            <select id="exWhat" aria-label="Cosa salvare"><option value="case">Copertina</option><option value="guide">Guida dei cartoni</option></select>
+            <select id="exDpi" aria-label="Risoluzione"><option value="150">150 dpi</option><option value="300" selected>300 dpi</option><option value="600">600 dpi</option></select>
+          </div>
+          <div class="row-actions"><button class="btn" id="exPdf">Salva PDF</button><button class="btn" id="exPng">Salva PNG</button></div>
+          <small class="fine" id="exInfo"></small>
+        </div>
+        <p class="fine pad">Stampa in scala 100% / dimensione reale. La pagina di stampa è grande quanto il foglio più i segni: scegli la carta (A3, A4…) indicata qui sopra. Il dorso dipende dal numero di pagine e dalla carta: fai prima una prova su carta semplice. Tutte le misure sono tue: l'app non aggiunge tolleranze di nascosto.</p>
       </aside>
       <div class="main-pane" id="coverView"></div>
     </div>
@@ -158,6 +176,7 @@
 <script src="js/layout.js"></script>
 <script src="js/impose.js"></script>
 <script src="js/cover.js"></script>
+<script src="js/raster.js"></script>
 <script src="js/textops.js"></script>
 <script src="js/export.js"></script>
 <script src="js/sample.js"></script>

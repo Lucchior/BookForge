@@ -29,7 +29,7 @@ I libri non lasciano mai il tuo computer: l'elaborazione avviene tutta nel brows
 4. **Anteprima** — tutto il libro a pagine affiancate, zoom, salto ai capitoli. È **lo stesso identico disegno** che finisce nella stampa.
 5. **Rilegatura** — scegli carta (A4, A3, Letter, Tabloid), un solo fascicolo o più fascicoli da N fogli, segni di piega e di cucitura, segni di taglio. Ogni foglio si vede fronte e retro.
 6. **Copertina** — due modi:
-   - **Cartonata (la tua immagine)**: carichi un'unica immagine con quarta + dorso + prima e inserisci tu tutte le misure (larghezza/altezza dei cartoni, dorso automatico o manuale, spazio tra i cartoni, risvolto, distanza del taglio d'angolo a 45°, margini dell'immagine). L'app stampa il foglio con i **segni di taglio** (continui) e di **piega/posizione dei cartoni** (tratteggiati) fuori dal foglio e i **tagli d'angolo a 45°** per girare la carta all'interno. Con **Stampa guida dei cartoni** ottieni i tre rettangoli (quarta, dorso, prima) in posizione reale con le quote, da usare come sagoma; c'è l'opzione «specchiata» per stamparla sul retro. L'app avvisa se l'immagine è sotto i 200 dpi.
+   - **Cartonata (la tua immagine)**: carichi un'unica immagine con quarta + dorso + prima e inserisci tu tutte le misure (larghezza/altezza dei cartoni, dorso automatico o manuale, spazio tra i cartoni, risvolto, distanza del taglio d'angolo a 45°, margini dell'immagine). L'app stampa il foglio con i **segni di taglio** (continui) e di **piega/posizione dei cartoni** (tratteggiati) fuori dal foglio e i **tagli d'angolo a 45°** per girare la carta all'interno. Con **Stampa guida dei cartoni** ottieni i tre rettangoli (quarta, dorso, prima) in posizione reale con le quote, da usare come sagoma; c'è l'opzione «specchiata» per stamparla sul retro. L'app avvisa se l'immagine è sotto i 200 dpi. Se la tua stampante non ha il formato del foglio (es. il Mac propone solo A4), usa **Salva senza stampare**: scegli copertina o guida, la risoluzione (150/300/600 dpi) e salva un **PDF** o un **PNG** alla misura esatta del foglio con i segni (es. 367 × 266 mm). Il PNG ha i dpi scritti nel file, quindi i programmi lo aprono già alla misura giusta; il PDF è una pagina con l'immagine a tutta pagina (il testo non è selezionabile).
    - **Semplice**: quarta, dorso (spessore da pagine e carta) e prima disegnati dall'app, con colori, immagine e testo sul dorso.
 
 ### Stampare o ottenere il PDF
@@ -51,6 +51,7 @@ Differenze rispetto al programma originale:
 - Si possono esportare TXT, HTML ed EPUB, non DOCX.
 - Il DOCX viene letto in modo semplificato (titoli, corsivo/grassetto, elenchi, tabelle, immagini; non note a piè di pagina né campi).
 - I PDF non si importano; il vecchio `.doc` e i formati Kindle vanno prima convertiti (DOCX / EPUB).
+- Il salvataggio diretto in PDF/PNG riguarda solo copertina e guida dei cartoni; pagine e fogli del libro si salvano dalla finestra di stampa («Salva come PDF»). A 600 dpi un foglio grande può superare i limiti del browser: l'app te lo dice e basta scegliere una risoluzione più bassa.
 - Libri con capitoli molto lunghi (centinaia di pagine in un solo capitolo) possono richiedere più tempo nell'anteprima e nella stampa.
 
 ## Sicurezza e privacy
@@ -67,7 +68,7 @@ icon.svg            icona
 css/                aspetto dell'app (app.css), del libro (book.css), font (fonts.css)
 js/                 util, zip (lettura/scrittura senza librerie), sanitize (pulizia HTML), importers,
                     settings, layout (motore di impaginazione), impose (fascicoli), cover,
-                    textops, export, viewer, sample, app
+                    textops, export, raster (salvataggio PDF/PNG), viewer, sample, app
 fonts/              font con licenza OFL (con i rispettivi OFL.txt)
 LICENSE             licenza di BookForge Web (MIT)
 LICENSE-originale-BookForge.txt   licenza MIT del progetto che ha ispirato questa riscrittura

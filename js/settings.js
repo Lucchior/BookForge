@@ -67,7 +67,7 @@
     // intestazioni e numeri di pagina
     headers: true, headerVerso: 'author', pageNum: 'bottom-center',
     // pagine iniziali
-    titlePage: true, copyrightPage: true, copyrightText: '', toc: true, tocTitle: 'Indice',
+    titlePage: true, copyrightPage: true, copyrightText: '', toc: true, tocTitle: 'Indice', numFrom: 'chapter',
   };
 
   BF.DEFAULT_BINDING = {
@@ -79,6 +79,10 @@
   BF.DEFAULT_COVER = {
     paper: 0.1, boardExtra: 0, bleed: 3, bg: '#1f2a44', fg: '#f4ead5', accent: '#c9a24a', fontKey: 'playfair',
     titleSize: 26, authorSize: 13, spineText: true, back: '', showFolds: true, imageFit: 'cover', useImage: true,
+    // copertina cartonata con immagine propria (misure in mm; 0 = automatico dal formato della pagina)
+    mode: 'case', boardW: 0, boardH: 0, spineAuto: true, spineManual: 10, hinge: 7, turnIn: 15, cornerGap: 2,
+    imgMode: 'sheet', imgL: 0, imgT: 0, imgR: 0, imgB: 0, ownFit: 'stretch',
+    markMargin: 10, showMarks: true, showBoards: false, guideMirror: false,
   };
 
   /** Valori CSS per la pagina. */
@@ -159,8 +163,8 @@
       { key: 'titlePage', label: 'Frontespizio', type: 'checkbox' },
       { key: 'copyrightPage', label: 'Pagina del copyright', type: 'checkbox' },
       { key: 'copyrightText', label: 'Testo del copyright (vuoto = automatico)', type: 'textarea', show: (s) => s.copyrightPage },
-      { key: 'toc', label: 'Indice con numeri di pagina', type: 'checkbox' },
-      { key: 'tocTitle', label: 'Titolo dell\'indice', type: 'text', show: (s) => s.toc },
+      { key: 'tocTitle', label: 'Titolo dell\'indice', type: 'text', help: 'L\'indice si sposta e si accende/spegne nell\'elenco dei capitoli.' },
+      { key: 'numFrom', label: 'La numerazione parte', type: 'select', options: [['chapter', 'Dal primo capitolo dopo l\'indice'], ['toc', 'Dall\'indice (l\'indice è pagina 1)']], help: 'Le pagine prima dell\'indice non hanno mai il numero.' },
     ] },
   ];
 
@@ -169,7 +173,11 @@
     opts = opts || {};
     container.innerHTML = '';
     const rows = [];
-    const refresh = () => rows.forEach((r) => (r.el.hidden = r.show ? !r.show(obj) : false));
+    const groups = [];
+    const refresh = () => {
+      rows.forEach((r) => (r.el.hidden = r.show ? !r.show(obj) : false));
+      groups.forEach((g) => (g.el.hidden = g.show ? !g.show(obj) : false));
+    };
     schema.forEach((g) => {
       const items = g.items;
       const details = BF.el('details', { class: 'fgroup', open: opts.open !== false });
@@ -207,6 +215,7 @@
         body.appendChild(row);
       });
       details.appendChild(body);
+      groups.push({ el: details, show: g.show });
       container.appendChild(details);
     });
     function syncAll() {

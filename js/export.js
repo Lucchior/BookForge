@@ -3,8 +3,9 @@
   const BF = (window.BF = window.BF || {});
   const { esc } = BF;
 
-  BF.projectToJson = function (state) {
-    return JSON.stringify({ format: 'bookforge-web', version: 1, book: state.book, settings: state.S, binding: state.B, cover: state.C }, null, 0);
+  BF.projectToJson = function (state, opts) {
+    const book = opts && opts.noOwnCover ? Object.assign({}, state.book, { ownCover: null }) : state.book;
+    return JSON.stringify({ format: 'bookforge-web', version: 1, book, settings: state.S, binding: state.B, cover: state.C }, null, 0);
   };
 
   /** Legge un progetto. Valida e rende sicuro l'HTML (anche se il file è stato modificato a mano). */
@@ -15,8 +16,13 @@
     const book = {
       title: String(d.book.title || ''), author: String(d.book.author || ''), language: String(d.book.language || 'it').slice(0, 5),
       cover: typeof d.book.cover === 'string' && /^data:image\//.test(d.book.cover) ? d.book.cover : null,
-      chapters: d.book.chapters.map((c) => ({ id: BF.uid(), title: String(c.title || ''), html: BF.sanitizeHtml(c.html || ''), include: c.include !== false })),
+      ownCover: typeof d.book.ownCover === 'string' && /^data:image\/(png|jpeg|webp|gif);base64,/.test(d.book.ownCover) ? d.book.ownCover : null,
+      chapters: d.book.chapters.map((c) => ({
+        id: BF.uid(), title: String(c.title || ''), html: c.kind === 'toc' ? '' : BF.sanitizeHtml(c.html || ''), include: c.include !== false,
+        kind: c.kind === 'toc' || c.kind === 'front' ? c.kind : 'chapter', inToc: c.inToc !== false, showTitle: !!c.showTitle,
+      })),
     };
+    BF.ensureToc(book, (d.settings && d.settings.toc) !== false);
     const pick = (src, def) => {
       const o = Object.assign({}, def);
       for (const k in def) if (src && typeof src[k] === typeof def[k]) o[k] = src[k];
@@ -27,14 +33,14 @@
 
   BF.exportTxt = function (book) {
     const parts = [book.title, book.author ? 'di ' + book.author : '', ''];
-    book.chapters.filter((c) => c.include).forEach((c) => {
+    BF.realChapters(book, true).forEach((c) => {
       parts.push('', c.title.toUpperCase(), '', BF.htmlToText(c.html));
     });
     return new Blob([parts.join('\n') + '\n'], { type: 'text/plain;charset=utf-8' });
   };
 
   BF.exportHtml = function (book) {
-    const body = book.chapters.filter((c) => c.include).map((c) => '<section><h1>' + esc(c.title) + '</h1>' + c.html + '</section>').join('\n');
+    const body = BF.realChapters(book, true).map((c) => '<section><h1>' + esc(c.title) + '</h1>' + c.html + '</section>').join('\n');
     const html =
       '<!doctype html><html lang="' + esc(book.language || 'it') + '"><head><meta charset="utf-8"><title>' + esc(book.title) + '</title>' +
       '<style>body{max-width:38em;margin:2em auto;padding:0 1em;font:1.1em/1.5 Georgia,serif}h1{text-align:center;margin-top:3em}p{margin:0;text-indent:1.2em}p.c{text-align:center;text-indent:0}h1+p,hr+p{text-indent:0}hr{border:0;text-align:center;margin:1em}hr::before{content:"* * *"}img{max-width:100%}</style></head><body><h1 style="font-size:2.2em">' +
@@ -62,7 +68,7 @@
       imgs.push({ name, mime: b.mime, data: b.data });
       return name;
     };
-    const chs = book.chapters.filter((c) => c.include);
+    const chs = BF.realChapters(book, true);
     const xhtmlDocs = chs.map((c, i) => {
       const t = document.createElement('template');
       t.innerHTML = c.html;
