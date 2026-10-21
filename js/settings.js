@@ -77,10 +77,9 @@
   };
 
   BF.DEFAULT_COVER = {
-    paper: 0.1, boardExtra: 0, bleed: 3, bg: '#1f2a44', fg: '#f4ead5', accent: '#c9a24a', fontKey: 'playfair',
-    titleSize: 26, authorSize: 13, spineText: true, back: '', showFolds: true, imageFit: 'cover', useImage: true, frontText: false,
-    // copertina cartonata con immagine propria (misure in mm; 0 = automatico dal formato della pagina)
-    mode: 'case', boardW: 0, boardH: 0, spineAuto: true, spineManual: 10, hinge: 7, turnIn: 15, cornerGap: 2,
+    paper: 0.1, boardExtra: 0, // dorso calcolato dalle pagine: carta interna (mm per foglio) + extra
+    // misure in mm (0 = automatico dal formato della pagina)
+    boardW: 0, boardH: 0, spineAuto: true, spineManual: 10, hinge: 7, turnIn: 15, cornerGap: 2,
     imgMode: 'sheet', imgL: 0, imgT: 0, imgR: 0, imgB: 0, ownFit: 'stretch',
     markMargin: 10, showMarks: true, showBoards: false, guideMirror: false,
   };

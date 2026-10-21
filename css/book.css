@@ -163,4 +163,3 @@
 
 /* ---- copertina ---- */
 .bk-coverpage { position: relative; overflow: hidden; flex: none; background: #fff; }
-.bk-coverpage .panel { position: absolute; overflow: hidden; }

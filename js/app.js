@@ -541,12 +541,8 @@
   }
 
   // ------------------------------------------------------------------ COPERTINA
-  const isCase = (c) => c.mode === 'case';
   const COVER_SCHEMA = [
-    { group: 'Tipo di copertina', items: [
-      { key: 'mode', label: 'Che copertina stampare', type: 'select', options: [['case', 'Cartonata: la mia immagine + segni di taglio e piega'], ['simple', 'Semplice, disegnata dall\'app (brossura)']] },
-    ] },
-    { group: 'Cartoni (misure in mm)', show: isCase, items: [
+    { group: 'Cartoni (misure in mm)', items: [
       { key: 'boardW', label: 'Larghezza cartone (quarta e prima)', type: 'number', min: 0, max: 400, step: 0.5, help: '0 = larghezza della pagina + 3 mm.' },
       { key: 'boardH', label: 'Altezza cartone', type: 'number', min: 0, max: 500, step: 0.5, help: '0 = altezza della pagina + 6 mm.' },
       { key: 'spineAuto', label: 'Larghezza del cartone del dorso dal numero di pagine', type: 'checkbox' },
@@ -555,7 +551,7 @@
       { key: 'turnIn', label: 'Risvolto: carta che si piega all\'interno', type: 'number', min: 0, max: 40, step: 0.5 },
       { key: 'cornerGap', label: 'Taglio d\'angolo a 45°: distanza dall\'angolo del cartone', type: 'number', min: 0, max: 20, step: 0.5, help: 'Di solito poco più dello spessore del cartone.' },
     ] },
-    { group: 'La mia immagine', show: isCase, items: [
+    { group: 'La mia immagine', items: [
       { key: 'imgMode', label: 'Come sta sul foglio', type: 'select', options: [['sheet', 'Occupa tutto il foglio (risvolti compresi)'], ['boards', 'Solo la zona dei cartoni'], ['custom', 'Con i miei margini']] },
       { key: 'imgT', label: 'Margine sopra (mm)', type: 'number', min: 0, max: 200, step: 0.5, show: (c) => c.imgMode === 'custom' },
       { key: 'imgB', label: 'Margine sotto (mm)', type: 'number', min: 0, max: 200, step: 0.5, show: (c) => c.imgMode === 'custom' },
@@ -563,30 +559,15 @@
       { key: 'imgR', label: 'Margine a destra (mm)', type: 'number', min: 0, max: 200, step: 0.5, show: (c) => c.imgMode === 'custom' },
       { key: 'ownFit', label: 'Adattamento', type: 'select', options: [['stretch', 'Adatta alla zona (può deformare)'], ['cover', 'Riempi e taglia l\'eccedenza'], ['contain', 'Mostra intera']] },
     ] },
-    { group: 'Segni e guida', show: isCase, items: [
+    { group: 'Segni e guida', items: [
       { key: 'showMarks', label: 'Segni di taglio e piega fuori dal foglio', type: 'checkbox' },
       { key: 'markMargin', label: 'Carta extra attorno al foglio per i segni (mm)', type: 'number', min: 0, max: 30, step: 0.5, show: (c) => c.showMarks },
       { key: 'showBoards', label: 'Disegna anche i contorni dei cartoni sull\'immagine', type: 'checkbox', help: 'Utile per una prova: poi toglilo.' },
       { key: 'guideMirror', label: 'Guida specchiata (per stamparla sul retro del foglio)', type: 'checkbox' },
     ] },
-    { group: 'Dorso', show: (c) => c.mode === 'simple' || c.spineAuto, items: [
+    { group: 'Dorso', show: (c) => c.spineAuto, items: [
       { key: 'paper', label: 'Carta interna', type: 'select', options: [['0.09', '70 g — 0,09 mm per foglio'], ['0.1', '80 g — 0,10 mm per foglio'], ['0.115', '90 g — 0,115 mm per foglio'], ['0.15', '120 g — 0,15 mm per foglio']] },
       { key: 'boardExtra', label: 'Spessore extra del dorso (mm)', type: 'number', min: 0, max: 20, step: 0.1, help: 'Per colla o cartoncino della copertina.' },
-      { key: 'bleed', label: 'Abbondanza (mm)', type: 'number', min: 0, max: 10, step: 0.5, show: (c) => c.mode === 'simple' },
-    ] },
-    { group: 'Aspetto', show: (c) => c.mode === 'simple', items: [
-      { key: 'bg', label: 'Colore di sfondo', type: 'color' },
-      { key: 'fg', label: 'Colore del testo', type: 'color' },
-      { key: 'accent', label: 'Colore del dettaglio', type: 'color' },
-      { key: 'fontKey', label: 'Carattere', type: 'select', options: BF.FONTS.map((f) => [f[0], f[1]]) },
-      { key: 'titleSize', label: 'Dimensione titolo (pt)', type: 'number', min: 10, max: 60, step: 1 },
-      { key: 'authorSize', label: 'Dimensione autore (pt)', type: 'number', min: 6, max: 30, step: 1 },
-      { key: 'spineText', label: 'Scrivi titolo sul dorso', type: 'checkbox' },
-      { key: 'useImage', label: 'Usa immagine di copertina', type: 'checkbox' },
-      { key: 'imageFit', label: 'Adattamento immagine', type: 'select', options: [['cover', 'Riempi la copertina'], ['contain', 'Mostra intera']] },
-      { key: 'frontText', label: 'Scrivi titolo e autore sopra l\'immagine', type: 'checkbox' },
-      { key: 'showFolds', label: 'Linee di piega e segni di taglio', type: 'checkbox' },
-      { key: 'back', label: 'Testo della quarta di copertina', type: 'textarea' },
     ] },
   ];
   /** Pulsanti per scegliere l'immagine: nella copertina cartonata è la MIA immagine (intera, senza ridurla). */
@@ -594,7 +575,6 @@
     const f = $('#coverUp');
     if (!f) return;
     f.innerHTML = '';
-    const own = isCase(state.C);
     const inp = el('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp,image/gif', hidden: true });
     inp.addEventListener('change', async () => {
       const file = inp.files[0];
@@ -602,17 +582,16 @@
       if (file.size > 40 * 1024 * 1024) return BF.toast('Immagine troppo grande (oltre 40 MB).', 'err');
       if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type)) return BF.toast('Formato non supportato: usa PNG, JPG o WebP.', 'err');
       const url = await BF.fileToDataURL(file);
-      if (own) state.book.ownCover = url;
-      else { state.book.cover = await BF.shrinkImage(url); state.C.useImage = true; }
+      state.book.ownCover = url;
       changed(); addCoverUpload(); refreshCover(true);
     });
-    const has = own ? state.book && state.book.ownCover : state.book && state.book.cover;
+    const has = state.book && state.book.ownCover;
     f.append(el('div', { class: 'fgroup-up' },
-      el('b', null, own ? 'La mia copertina (quarta + dorso + prima in un\'unica immagine)' : 'Immagine della prima di copertina'),
+      el('b', null, 'La mia copertina (quarta + dorso + prima in un\'unica immagine)'),
       el('div', { class: 'row-actions' },
         el('button', { class: 'btn small primary', onclick: () => inp.click() }, has ? 'Cambia immagine…' : 'Scegli immagine…'),
-        has ? el('button', { class: 'btn small', onclick: () => { if (own) state.book.ownCover = null; else state.book.cover = null; changed(); addCoverUpload(); refreshCover(true); } }, 'Togli immagine') : '', inp),
-      own ? el('small', { class: 'fine' }, 'Va a sinistra la quarta, al centro il dorso, a destra la prima. L\'immagine non viene rimpicciolita; viene salvata nel file del progetto.') : ''));
+        has ? el('button', { class: 'btn small', onclick: () => { state.book.ownCover = null; changed(); addCoverUpload(); refreshCover(true); } }, 'Togli immagine') : '', inp),
+      el('small', { class: 'fine' }, 'Va a sinistra la quarta, al centro il dorso, a destra la prima. L\'immagine non viene rimpicciolita; viene salvata nel file del progetto.')));
   }
   const PAPERS = [['A4', 210, 297], ['A3', 297, 420], ['A2', 420, 594]];
   const fits = (w, h, p) => (w <= p[1] && h <= p[2]) || (h <= p[1] && w <= p[2]);
@@ -622,25 +601,12 @@
     if (!coverViewer) coverViewer = new BF.Viewer($('#coverView'));
     addCoverUpload();
     coverViewer.clear('Calcolo il dorso…');
-    $('#prGuide').hidden = !isCase(state.C);
-    $('#saveBox').hidden = !isCase(state.C);
     try {
       const L = await ensureLayout();
       const total = BF.bookPages(L); // il libro rilegato ha sempre un multiplo di 4 pagine
       const sum = $('#coverSummary');
       sum.innerHTML = '';
       sum.className = 'summary';
-      if (!isCase(state.C)) {
-        const r = BF.renderCover(state.book, state.S, state.C, state.B.mode === 'none' ? L.total : total);
-        sum.append(el('div', null, `Copertina aperta: ${r.dims.W.toFixed(1)} × ${r.dims.H.toFixed(1)} mm`),
-          el('div', null, `Dorso: ${r.dims.spine.toFixed(1)} mm (${r.dims.leaves} fogli di carta, ${total} pagine)`));
-        coverViewer.setProvider({
-          count: () => 1,
-          label: () => 'quarta · dorso · prima',
-          build: () => { const holder = el('div', { class: 'pg-shadow' }); const c = BF.renderCover(state.book, state.S, state.C, total).el; c.style.boxShadow = 'none'; holder.appendChild(c); return { el: holder, w: r.dims.W, h: r.dims.H }; },
-        }, keep);
-        return;
-      }
       const d = BF.caseDims(state.S, state.C, total);
       const f1 = (v) => (Math.round(v * 10) / 10).toString().replace('.', ',');
       const lines = [
@@ -687,11 +653,6 @@
       const total = BF.bookPages(L);
       const r = (kind === 'guide' ? BF.renderGuide : BF.renderCase)(state.book, S, state.C, total);
       W = r.dims.pageW; H = r.dims.pageH;
-      nodes.push(() => r.el);
-    } else if (kind === 'cover') {
-      const total = BF.bookPages(L);
-      const r = BF.renderCover(state.book, S, state.C, total);
-      W = r.dims.W; H = r.dims.H;
       nodes.push(() => r.el);
     } else if (kind === 'pages' || B.mode === 'none') {
       L.pages.forEach((_, i) => nodes.push(() => BF.renderPage(L, i, S, state.book)));
@@ -740,7 +701,7 @@
   $('#prFronts').addEventListener('click', () => printJob('fronts'));
   $('#prBacks').addEventListener('click', () => printJob('backs'));
   $('#prPages').addEventListener('click', () => printJob('pages'));
-  $('#prCover').addEventListener('click', () => printJob(isCase(state.C) ? 'case' : 'cover'));
+  $('#prCover').addEventListener('click', () => printJob('case'));
   $('#prGuide').addEventListener('click', () => printJob('guide'));
   // salvataggio diretto (PDF/PNG) della copertina e della guida, alla misura esatta del foglio con i segni
   async function saveCase(fmt) {
