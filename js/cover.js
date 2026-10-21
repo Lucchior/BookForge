@@ -2,9 +2,16 @@
 (function () {
   const BF = (window.BF = window.BF || {});
 
-  BF.coverDims = function (S, C, totalPages) {
+  /** Pagine di un libro rilegato: sempre un multiplo di 4. */
+  BF.bookPages = (L) => Math.ceil(L.total / 4) * 4;
+  /** Fogli di carta e spessore del dorso calcolato (mm), condivisi dai due tipi di copertina. */
+  function spineOf(C, totalPages) {
     const leaves = Math.ceil(totalPages / 2);
-    const spine = Math.max(0, leaves * C.paper + C.boardExtra);
+    return { leaves, spine: Math.max(0, leaves * C.paper + C.boardExtra) };
+  }
+
+  BF.coverDims = function (S, C, totalPages) {
+    const { leaves, spine } = spineOf(C, totalPages);
     return {
       spine,
       W: 2 * S.pageW + spine + 2 * C.bleed,
@@ -98,8 +105,7 @@
 
   /** Geometria del foglio di copertina e dei tre cartoni. Tutto in mm, origine in alto a sinistra del foglio. */
   BF.caseDims = function (S, C, totalPages) {
-    const leaves = Math.ceil(totalPages / 2);
-    const autoSpine = Math.max(0, leaves * C.paper + C.boardExtra);
+    const { leaves, spine: autoSpine } = spineOf(C, totalPages);
     const spine = C.spineAuto ? autoSpine : num(C.spineManual, 0);
     const bw = num(C.boardW, 0) || S.pageW + 3;
     const bh = num(C.boardH, 0) || S.pageH + 6;
@@ -237,15 +243,13 @@
       svgEl('rect', { x: o + b.x, y: o + d.top, width: b.w, height: d.bh, fill: '#f4f1ea', stroke: '#000', 'stroke-width': 0.3 }, svg);
       const cx = o + b.x + b.w / 2, cy = o + d.top + d.bh / 2;
       if (b.id === 'spine' && b.w < 30) {
-        const t = text(cx, cy, 'DORSO  ' + fx(b.w) + ' × ' + fx(d.bh) + ' mm', Math.min(4, Math.max(2, b.w * 0.45)), { transform: `rotate(-90 ${cx} ${cy})` });
-        void t;
+        text(cx, cy, 'DORSO  ' + fx(b.w) + ' × ' + fx(d.bh) + ' mm', Math.min(4, Math.max(2, b.w * 0.45)), { transform: `rotate(-90 ${cx} ${cy})` });
       } else {
         text(cx, cy - 2, b.name.toUpperCase(), 5);
         text(cx, cy + 4, fx(b.w) + ' × ' + fx(d.bh) + ' mm', 4);
       }
     });
     // quote: spazi (cerniere) e risvolti
-    const dimY = o + d.top - 0; void dimY;
     if (d.g > 0) {
       [[d.backR, d.spineL], [d.spineR, d.frontL]].forEach(([a, b]) => {
         const cy = o + d.top + d.bh * 0.12;

@@ -26,7 +26,6 @@
   };
 
   function finishBook(book) {
-    const used = [];
     book.chapters = book.chapters
       .map((c, i) => {
         let title = (c.title || '').trim();
@@ -44,7 +43,6 @@
     book.title = (book.title || '').trim();
     book.author = (book.author || '').trim();
     book.cover = book.cover || null;
-    void used;
     return book;
   }
 

@@ -96,7 +96,6 @@
     const n = L.total;
     const spreads = Math.floor((n + 1) / 2) + 1; // 0: pagina 1 da sola a destra; poi coppie (2,3), (4,5)...
     const single = !!opts.single;
-    const pageIdx = single ? n : spreads;
     return {
       count: () => (single ? n : spreads),
       start: () => (opts.startPage != null ? (single ? opts.startPage : Math.floor((opts.startPage + 1) / 2)) : 0),
@@ -118,7 +117,6 @@
           if ((x == null || x >= n) && !single) { holder.style.boxShadow = 'none'; holder.firstChild.style.background = 'transparent'; holder.firstChild.className = 'bk-page'; BF.applyVars(holder.firstChild, S); }
           wrap.appendChild(holder);
         });
-        void pageIdx;
         return { el: wrap, w: S.pageW * idxs.length, h: S.pageH };
       },
     };

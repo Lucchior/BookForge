@@ -7,10 +7,11 @@
     book: null,
     S: Object.assign({}, BF.DEFAULTS, BF.store.get('S', {})),
     B: Object.assign({}, BF.DEFAULT_BINDING, BF.store.get('B', {})),
-    C: Object.assign({}, BF.DEFAULT_COVER, { frontText: false }, BF.store.get('C', {})),
+    C: Object.assign({}, BF.DEFAULT_COVER, BF.store.get('C', {})),
     layout: null,
     cur: 0, // capitolo selezionato
     dirty: false,
+    ver: 0, // cresce a ogni modifica: serve a scartare un'impaginazione calcolata su dati ormai vecchi
     undo: null,
     tab: 'import',
   };
@@ -39,12 +40,12 @@
     } catch (e) { /* ok */ }
   }, 2500);
 
-  function changed(what) {
+  function changed() {
     state.dirty = true;
     state.layout = null;
+    state.ver++;
     saveLookSoon();
     autosaveSoon();
-    void what;
   }
 
   // ------------------------------------------------------------------ schede
@@ -75,6 +76,7 @@
     }
     state.dirty = !keepSettings;
     state.layout = null;
+    state.ver++;
     BF.ensureToc(book, state.S.toc !== false);
     state.lookSel = null;
     syncBookInfo();
@@ -109,7 +111,6 @@
   const fileIn = $('#fileIn');
   fileIn.addEventListener('change', () => { handleFile(fileIn.files[0]); fileIn.value = ''; });
   const drop = $('#drop');
-  drop.addEventListener('click', (e) => { e.preventDefault(); fileIn.click(); });
   drop.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileIn.click(); } });
   ['dragenter', 'dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); }));
   ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
@@ -374,9 +375,13 @@
     layoutBusy = (async () => {
       busy('Impagino il libro…', 0);
       try {
-        const L = await BF.layout(state.book, state.S, { onProgress: (m, f) => busy(m, f) });
-        state.layout = L;
-        return L;
+        // se mentre impagino qualcosa cambia, il risultato è già vecchio: lo rifaccio (al massimo 3 volte)
+        for (let k = 0; ; k++) {
+          const v = state.ver;
+          const L = await BF.layout(state.book, state.S, { onProgress: (m, f) => busy(m, f) });
+          if (v === state.ver) { state.layout = L; return L; }
+          if (k >= 2) return L;
+        }
       } finally { unbusy(); layoutBusy = null; }
     })();
     return layoutBusy;
@@ -619,10 +624,9 @@
     coverViewer.clear('Calcolo il dorso…');
     $('#prGuide').hidden = !isCase(state.C);
     $('#saveBox').hidden = !isCase(state.C);
-    $('#prCover').textContent = isCase(state.C) ? 'Stampa copertina' : 'Stampa copertina';
     try {
       const L = await ensureLayout();
-      const total = Math.ceil(L.total / 4) * 4; // il libro rilegato ha sempre un multiplo di 4 pagine
+      const total = BF.bookPages(L); // il libro rilegato ha sempre un multiplo di 4 pagine
       const sum = $('#coverSummary');
       sum.innerHTML = '';
       sum.className = 'summary';
@@ -680,12 +684,12 @@
     let W = S.pageW, H = S.pageH;
     const nodes = []; // funzioni che creano un nodo alla volta (per non bloccare il browser)
     if (kind === 'case' || kind === 'guide') {
-      const total = Math.ceil(L.total / 4) * 4;
+      const total = BF.bookPages(L);
       const r = (kind === 'guide' ? BF.renderGuide : BF.renderCase)(state.book, S, state.C, total);
       W = r.dims.pageW; H = r.dims.pageH;
       nodes.push(() => r.el);
     } else if (kind === 'cover') {
-      const total = Math.ceil(L.total / 4) * 4;
+      const total = BF.bookPages(L);
       const r = BF.renderCover(state.book, S, state.C, total);
       W = r.dims.W; H = r.dims.H;
       nodes.push(() => r.el);
@@ -742,7 +746,7 @@
   async function saveCase(fmt) {
     try {
       const L = await ensureLayout();
-      const total = Math.ceil(L.total / 4) * 4;
+      const total = BF.bookPages(L);
       const what = $('#exWhat').value, dpi = +$('#exDpi').value;
       busy('Preparo l\'immagine a ' + dpi + ' dpi…', 0.4);
       await BF.sleep(50);
